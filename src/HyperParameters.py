@@ -1,0 +1,16 @@
+import torch
+import torch.nn as nn
+
+
+#layers = np.array([2, 8, 8, 8, 8, 3])  # Number of nodes in each layer of Neural Networks
+train_val = [0.80, 0.20]   # Ratio of Validation Set to be taken from the Training Set, [Train set Size, Val Set Size]
+train_size = 0.75 #Ratio of Train Dataset
+epochs= 50000
+learning_rate= 1e-3       #Comment If Not Needed for the model.
+ff_learning_rate = 1e-5   #Comment If Not Needed for the model.
+batch_size = 32
+input_size = 2
+hidden_sizes = [8, 8, 8, 8, 8, 8, 8, 8]
+output_size = 3
+activations = [nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Tanh()]
+lda = torch.tensor([0.001])
