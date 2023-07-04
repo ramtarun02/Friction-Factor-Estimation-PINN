@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import src.HyperParameters as hp
 
-
-
 def RHS_f(y, baseflow, f):
     pi_p, pi_m, sig = torch.unbind(y,axis=1)
 
@@ -52,32 +50,37 @@ def RHS_f(y, baseflow, f):
     eq3 =  (Ups*kp_m)*pi_p + ( Ups*kp_p)*pi_m + (Ups)*sig
     
     return torch.stack([-eq1, -eq2, -eq3], axis=1)
-# Neural Network for Predicting the pi+, pi-, and si.
 
-class NN(nn.Module):
-    def __init__(self):
-        super().__init__()
-        
-        self.input_layer = nn.Linear(hp.input_size, hp.hidden_sizes[0])
+
+class PhyGRU(nn.Module):
+    def __init__(self, input_size, output_size, hidden_sizes, activations):
+        super(PhyGRU, self).__init__()
+
+        self.gru_layers = len(hp.hidden_sizes)
+        self.hidden_sizes = hidden_sizes
+        self.activation = nn.ModuleList(activations)
+        self.gru = nn.GRU(input_size, self.hidden_sizes[0], batch_first=True)
         self.hidden_layers = nn.ModuleList()
-        for i in range(len(hp.hidden_sizes) - 1):
-            self.hidden_layers.append(nn.Linear(hp.hidden_sizes[i], hp.hidden_sizes[i + 1]))
-        self.output_layer = nn.Linear(hp.hidden_sizes[-1], hp.output_size)
-        
-        self.activations = nn.ModuleList(hp.activations)
-    
-    def forward(self, x):
-        x = self.activations[0](self.input_layer(x))
-        for i, hidden_layer in enumerate(self.hidden_layers):
-            x = self.activations[i+1](hidden_layer(x))
-        x = self.output_layer(x)
-        return x
+        self.hidden_layers.append(nn.Linear(self.hidden_sizes[0], self.hidden_sizes[0]))
+        for i in range(1, self.gru_layers):
+            self.hidden_layers.append(nn.Linear(self.hidden_sizes[i-1], self.hidden_sizes[i]))
+        self.output_layer = nn.Linear(self.hidden_sizes[-1], output_size)
 
+    def forward(self, x):
+        gru_output, _ = self.gru(x)
+        gru_output = self.activation[0](gru_output)
+        
+        for i, hidden_layer in enumerate(self.hidden_layers):
+            gru_output = hidden_layer(gru_output)
+            gru_output = self.activation[i](gru_output)
+        
+        output = self.output_layer(gru_output)
+        return output
+    
 # Physics informed Neural Network 
-# f = torch.empty(1)
 class PINN(nn.Module):
-    def __init__(self):   
-        super().__init__()
+    def __init__(self, input_size, output_size, hidden_sizes, activations):   
+        super(PINN, self).__init__()
         self.loss_function = nn.MSELoss()
         'Initialize our new parameters i.e.f (Inverse problem)' 
         # self.f = torch.tensor([f], requires_grad=True).type(torch.float32)
@@ -86,8 +89,8 @@ class PINN(nn.Module):
         # self.f = nn.Parameter(self.f)
         'Initialize iterator'
         self.iter = 0
-        'Call our DNN'
-        self.dnn = NN()
+        'Call our PIGRU'
+        self.rnn = PhyGRU(input_size, output_size, hidden_sizes, activations)
         'Register our new parameter'
         # self.dnn.register_parameter('f', self.f)  
 
@@ -95,17 +98,21 @@ class PINN(nn.Module):
         self.lda = torch.tensor([hp.lda])
 
     def loss_data(self, X, UU):
-        preds = self.dnn(X)
-        loss_u = self.loss_function(preds[:, :3], UU)
-        return loss_u
+        output = self.rnn(X)
+        x_pred, y_pred, z_pred = output[:,0], output[:,1], output[:,2]
+        loss_data = torch.mean((x_pred - UU[:,0]) ** 2 +
+                          (y_pred - UU[:,1]) ** 2 +
+                          (z_pred - UU[:,2]) ** 2)
+                        
+        return loss_data
     
     def loss_residual(self, X, meanflow):
-        g = torch.clone(X)
-        preds = self.dnn(g)
-        outs = preds[:, :3]
-        f = torch.mean(preds[:, 3])
-        GR = RHS_f(outs, meanflow, f)
-        dr_dn = torch.autograd.grad(outs,g,torch.ones_like(outs), retain_graph=True, create_graph=True)[0]
+        output = self.rnn(X)
+        r = output[:,:3]
+        f_pred = output[:,3]
+        f = torch.mean(f_pred)
+        GR = RHS_f(r, meanflow, f)
+        dr_dn = torch.autograd.grad(r,X,torch.ones_like(r), retain_graph=True, create_graph=True)[0]
         pde = dr_dn[:, 1:] + GR
         return torch.mean(pde**2) 
     

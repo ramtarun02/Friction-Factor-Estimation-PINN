@@ -3,7 +3,7 @@ import scipy.io
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset, dataset
 
-import src2.HyperParameters as hp
+import src.HyperParameters as hp
 
 
 # data = scipy.io.loadmat('/Users/ramtarun/Desktop/Cambridge/Indirect-Noise-in-Nozzles/Data/Data_PINN_subsonic_geom_linvelsup_f0-0.1.mat')

@@ -72,6 +72,24 @@ class NN(nn.Module):
             x = self.activations[i+1](hidden_layer(x))
         x = self.output_layer(x)
         return x
+    
+class FRNN(nn.Module):
+     def __init__(self):
+        super(FRNN, self).__init__()
+        self.hidden_sizes = hp.RNN_hidden_sizes
+        self.num_layers = len(hp.RNN_hidden_sizes)
+        self.rnn = nn.RNN(hp.RNN_input_size, hp.RNN_hidden_sizes[0], num_layers=1, batch_first=True)
+        self.fcs = nn.ModuleList([nn.Linear(hp.RNN_hidden_sizes[i], hp.RNN_hidden_sizes[i+1]) 
+                                  for i in range(self.num_layers - 1)])
+        self.fc = nn.Linear(hp.RNN_hidden_sizes[-1], hp.RNN_output_size)
+        self.activations = hp.RNN_activations
+
+     def forward(self, x):
+        output, _ = self.rnn(x)
+        for i in range(self.num_layers - 1):
+            output = self.activations[i](self.fcs[i](output))
+        output = self.fc(output[:,-1,:])  # Take the last output of the sequence
+        return output
 
 # Physics informed Neural Network 
 # f = torch.empty(1)
@@ -90,22 +108,24 @@ class PINN(nn.Module):
         self.dnn = NN()
         'Register our new parameter'
         # self.dnn.register_parameter('f', self.f)  
-
+        'Call our RNN'
+        self.RNN = FRNN()
         'Regularisation Constant'
         self.lda = torch.tensor([hp.lda])
 
     def loss_data(self, X, UU):
         preds = self.dnn(X)
-        loss_u = self.loss_function(preds[:, :3], UU)
+        loss_u = self.loss_function(preds, UU)
         return loss_u
     
     def loss_residual(self, X, meanflow):
         g = torch.clone(X)
         preds = self.dnn(g)
-        outs = preds[:, :3]
-        f = torch.mean(preds[:, 3])
-        GR = RHS_f(outs, meanflow, f)
-        dr_dn = torch.autograd.grad(outs,g,torch.ones_like(outs), retain_graph=True, create_graph=True)[0]
+        # outs = preds[:, :3]
+        ff = self.RNN(preds)
+        f = torch.mean(ff)
+        GR = RHS_f(preds, meanflow, f)
+        dr_dn = torch.autograd.grad(preds,g,torch.ones_like(preds), retain_graph=True, create_graph=True)[0]
         pde = dr_dn[:, 1:] + GR
         return torch.mean(pde**2) 
     
