@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import src.HyperParameters as hp
+import HyperParameters as hp
 
 
 
@@ -107,9 +107,16 @@ class PINN(nn.Module):
         GR = RHS_f(outs, meanflow, f)
         dr_dn = torch.autograd.grad(outs,g,torch.ones_like(outs), retain_graph=True, create_graph=True)[0]
         pde = dr_dn[:, 1:] + GR
-        return torch.mean(pde**2) 
+        return 
     
     def Loss(self, X, UU, meanflow):
         loss_data = self.loss_data(X, UU)
         loss_residual = self.loss_residual(X, meanflow)
         return loss_data + hp.lda*loss_residual 
+
+
+
+# model = PINN()
+# a = torch.rand((100,3))
+# b = torch.rand((100,7))
+# model.loss_residual(a,b)

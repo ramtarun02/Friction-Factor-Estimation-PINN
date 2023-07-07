@@ -1,6 +1,7 @@
 import torch
+import torch.nn as nn
 import src.HyperParameters as hp
-import src.model as model
+import src.model3 as model
 
 
 # PINN_model = model.PINN()
@@ -8,9 +9,20 @@ import src.model as model
 # # Define your loss function and optimizer
 # params = list(PINN_model.parameters())
 # optimizer1 = torch.optim.Adam(params = params, lr = hp.learning_rate, amsgrad = True)   
+def transform_sequence(tensor, seq_length):
+    # tensor shape: (N, 2)
+    # seq_length: desired sequence length
 
+    # Add a new dimension of size 1 to the tensor
+    tensor = torch.unsqueeze(tensor, dim=1)
 
+    # Repeat the tensor along the added dimension to match the desired sequence length
+    tensor = tensor.repeat(1, seq_length, 1)
 
+    # tensor shape: (N, L, 2)
+    return tensor
+
+     
 
 def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
     losses = {}
@@ -22,14 +34,19 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
     for i in range(epochs):
             running_loss = 0.0
             for j, (X, Y, MF) in enumerate(train_loader):
+
+                X = transform_sequence(X, hp.seq_length)
+                Y = transform_sequence(Y, hp.seq_length)
+                MF = transform_sequence(MF, hp.seq_length)
+    
                 optimizer.zero_grad()               
                 loss1 = PINN_model.Loss(X, Y, MF)
                 loss1.backward()
                 optimizer.step()
                 running_loss += loss1.item() 
                 # ff = PINN_model.f.item()
-                ff = PINN_model.rnn(X)[:,3]
-                f_dist[X[:,1]] = ff
+                ff = PINN_model.rnn(X)[:,:,3]
+                f_dist[X[:,:,:-1]] = ff
 
             epoch_loss = running_loss/N 
             losses[i] = epoch_loss
@@ -39,10 +56,14 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
             with torch.no_grad():
                 val_loss = 0.0
                 for k, (A, B, C) in enumerate(val_loader):
-                    u_pred = PINN_model.rnn(A)[:, :3]
-                    val_loss += torch.linalg.norm((B-u_pred),2)/torch.linalg.norm(B,2)
-                #   val_loss += PINN_model.Loss(A, B, C).item()
-                    f_pred = PINN_model.rnn(A)[:,3]
+                    A = transform_sequence(A, seq_length=hp.seq_length)
+                    B = transform_sequence(B, seq_length=hp.seq_length)
+                    C = transform_sequence(C, seq_length=hp.seq_length)
+                    u_pred = PINN_model.rnn(A)[:, :, :-1]
+                    
+                    val_loss += torch.mean((u_pred-B)**2)
+    
+                    f_pred = PINN_model.rnn(A)[:,:,3]
 
                 val_loss /= len(val_loader) # Average Validation Loss
                 vals[i] = val_loss
