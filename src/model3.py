@@ -98,6 +98,7 @@ class PINN(nn.Module):
         self.lda = lda
 
     def loss_data(self, X, UU):
+        
         output = self.rnn(X)
         # x_pred, y_pred, z_pred = output[:,0], output[:,1], output[:,2]
         # loss_data = torch.mean((x_pred - UU[:,0]) ** 2 +
