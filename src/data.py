@@ -5,16 +5,15 @@ from torch.utils.data import DataLoader, TensorDataset, dataset
 
 import src.HyperParameters as hp
 
-
 # data = scipy.io.loadmat('/Users/ramtarun/Desktop/Cambridge/Indirect-Noise-in-Nozzles/Data/Data_PINN_subsonic_geom_linvelsup_f0-0.1.mat')
 
-def DataPreprocessing(data, ff):
+def DataPreprocessing(data, ff, device):
 
     fmat = {0.1:data['sbsl_PINN'][0][0], 0.08:data['sbsl_PINN'][1][0], 0.06:data['sbsl_PINN'][2][0], 0.04:data['sbsl_PINN'][3][0], 0.02:data['sbsl_PINN'][4][0], 0.01:data['sbsl_PINN'][5][0], 0.005:data['sbsl_PINN'][6][0], 0.0:data['sbsl_PINN'][7][0]}
     fval = [0.1  , 0.08 , 0.06 , 0.04 , 0.02 , 0.01 , 0.005, 0.000]
     i = ff
     N = fmat[i].shape[1]
-    U = torch.zeros((N,4))
+    U = torch.zeros((N,4), device = device)
     U[:,0] = torch.from_numpy(data['eta'])
     U[:,1] = torch.from_numpy(fmat[i][0,:])
     U[:,2] = torch.from_numpy(fmat[i][1,:])
@@ -29,7 +28,7 @@ def DataPreprocessing(data, ff):
     alpha = torch.from_numpy(data['alp'])
     eta1 = torch.from_numpy(data['eta'])   
 
-    meanflow = torch.zeros((D.shape[1],7))
+    meanflow = torch.zeros((D.shape[1],7), device=device)
     meanflow[:,0] = D
     meanflow[:,1] = M
     meanflow[:,2] = u
@@ -39,7 +38,7 @@ def DataPreprocessing(data, ff):
     meanflow[:,6] = eta1
     #meanflow = torch.tile(meanflow, (8,1))
 
-    he = torch.tensor([0.00])
+    he = torch.tensor([0.00], device = device)
     HE = torch.tile(he, (N,1)) 
     #He = HE.flatten()[:,None]
 

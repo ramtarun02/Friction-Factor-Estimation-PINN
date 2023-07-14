@@ -12,6 +12,7 @@ import src.model3 as model
 def transform_sequence(tensor, seq_length):
     # tensor shape: (N, 2)
     # seq_length: desired sequence length
+  
 
     # Add a new dimension of size 1 to the tensor
     tensor = torch.unsqueeze(tensor, dim=1)
@@ -31,6 +32,7 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
     f_dist = {}
     f_test = {}
     # seq_len = N // hp.batch_size
+    torch.autograd.set_detect_anomaly(True)
     for i in range(epochs):
             running_loss = 0.0
             for j, (X, Y, MF) in enumerate(train_loader):
@@ -39,9 +41,11 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
                 Y = transform_sequence(Y, hp.seq_length)
                 MF = transform_sequence(MF, hp.seq_length)
     
-                optimizer.zero_grad()               
+                optimizer.zero_grad()    
+                
                 loss1 = PINN_model.Loss(X, Y, MF)
                 loss1.backward()
+                torch.nn.utils.clip_grad_norm_(PINN_model.parameters(), max_norm=2.0, norm_type=2, error_if_nonfinite=False)
                 optimizer.step()
                 running_loss += loss1.item() 
                 # ff = PINN_model.f.item()

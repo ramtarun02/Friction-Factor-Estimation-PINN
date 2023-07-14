@@ -6,7 +6,7 @@ import torch.nn as nn
 # train_val = [0.85, 0.15]   # Ratio of Validation Set to be taken from the Training Set, [Train set Size, Val Set Size]
 # train_size = 0.75 #Ratio of Train Dataset
 # epochs= 7500
-# learning_rate= 1e-2     #Comment If Not Needed for the model.
+# learning_rate= 1e-4     #Comment If Not Needed for the model.
 # ff_learning_rate = 1e-3   #Comment If Not Needed for the model.
 # batch_size = 4
 # input_size = 2
@@ -24,16 +24,17 @@ import torch.nn as nn
 # RNN_activations = [nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Sigmoid]
 
 
+
 ### Model 3
 train_val = [0.85, 0.15]   # Ratio of Validation Set to be taken from the Training Set, [Train set Size, Val Set Size]
 train_size = 0.75 #Ratio of Train Dataset
 batch_size = 32
-learning_rate= 1e-2     #Comment If Not Needed for the model.
+learning_rate= 1e-4    #Comment If Not Needed for the model.
 input_size = 2
-hidden_size = 128
+hidden_size = 4
 num_layers = 2 
 output_size = 4
 # activations = [nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Tanh()]
-lda = torch.tensor([1])
-epochs= 1000
+lda = 0.1
+epochs= 500
 seq_length = 8

@@ -3,7 +3,6 @@ import torch.nn as nn
 import src.HyperParameters as hp
 
 
-
 def RHS_f(y, baseflow, f):
 
     batch_len = y.shape[0]
@@ -80,7 +79,7 @@ class PhyGRU(nn.Module):
     
 # Physics informed Neural Network 
 class PINN(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size, num_layers):   
+    def __init__(self, input_size, output_size, hidden_size, num_layers, lda):   
         super(PINN, self).__init__()
         self.loss_function = nn.MSELoss()
         'Initialize our new parameters i.e.f (Inverse problem)' 
@@ -96,7 +95,7 @@ class PINN(nn.Module):
         # self.dnn.register_parameter('f', self.f)  
 
         'Regularisation Constant'
-        self.lda = torch.tensor([hp.lda])
+        self.lda = lda
 
     def loss_data(self, X, UU):
         output = self.rnn(X)
@@ -122,7 +121,7 @@ class PINN(nn.Module):
     def Loss(self, X, UU, meanflow):
         loss_data = self.loss_data(X, UU)
         loss_residual = self.loss_residual(X, meanflow)
-        return loss_data + hp.lda*loss_residual 
+        return loss_data + self.lda*loss_residual 
 
 def transform_sequence(tensor, seq_length):
     # tensor shape: (N, 2)
