@@ -32,7 +32,7 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
     f_dist = {}
     f_test = {}
     # seq_len = N // hp.batch_size
-    torch.backends.cudnn.flags(enabled=False)
+    
     torch.autograd.set_detect_anomaly(True)
     for i in range(epochs):
         running_loss = 0.0
