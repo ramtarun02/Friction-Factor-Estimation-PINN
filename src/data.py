@@ -8,10 +8,9 @@ import src.HyperParameters as hp
 # data = scipy.io.loadmat('/Users/ramtarun/Desktop/Cambridge/Indirect-Noise-in-Nozzles/Data/Data_PINN_subsonic_geom_linvelsup_f0-0.1.mat')
 
 def DataPreprocessing(data, ff, device):
-
-    fmat = {0.1:data['sbsl_PINN'][0][0], 0.08:data['sbsl_PINN'][1][0], 0.06:data['sbsl_PINN'][2][0], 0.04:data['sbsl_PINN'][3][0], 0.02:data['sbsl_PINN'][4][0], 0.01:data['sbsl_PINN'][5][0], 0.005:data['sbsl_PINN'][6][0], 0.0:data['sbsl_PINN'][7][0]}
-    fval = [0.1  , 0.08 , 0.06 , 0.04 , 0.02 , 0.01 , 0.005, 0.000]
     i = ff
+    fmat = {"0.1":data['sbsl_PINN'][0][0], "0.08":data['sbsl_PINN'][1][0], "0.06":data['sbsl_PINN'][2][0], "0.04":data['sbsl_PINN'][3][0], "0.02":data['sbsl_PINN'][4][0], "0.01":data['sbsl_PINN'][5][0], "0.005":data['sbsl_PINN'][6][0], "0.0":data['sbsl_PINN'][7][0]}
+    fval = [0.1  , 0.08 , 0.06 , 0.04 , 0.02 , 0.01 , 0.005, 0.000]
     N = fmat[i].shape[1]
     U = torch.zeros((N,4), device = device)
     U[:,0] = torch.from_numpy(data['eta'])
