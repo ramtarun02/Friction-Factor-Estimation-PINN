@@ -37,9 +37,9 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
             running_loss = 0.0
             for j, (X, Y, MF) in enumerate(train_loader):
 
-                X = transform_sequence(X, hp.seq_length)
-                Y = transform_sequence(Y, hp.seq_length)
-                MF = transform_sequence(MF, hp.seq_length)
+                # X = transform_sequence(X, hp.seq_length)
+                # Y = transform_sequence(Y, hp.seq_length)
+                # MF = transform_sequence(MF, hp.seq_length)
     
                 optimizer.zero_grad()    
                 
@@ -49,8 +49,9 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
                 optimizer.step()
                 running_loss += loss1.item() 
                 # ff = PINN_model.f.item()
-                ff = PINN_model.rnn(X)[:,:,3]
-                f_dist[X[:,:,:-1]] = ff
+                # ff = PINN_model.rnn(X)[:,:,3]
+                ff = PINN_model.dnn(X)[:,3]
+                f_dist[X[:,1]] = ff
 
             epoch_loss = running_loss/N 
             losses[i] = epoch_loss
@@ -60,14 +61,15 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
             with torch.no_grad():
                 val_loss = 0.0
                 for k, (A, B, C) in enumerate(val_loader):
-                    A = transform_sequence(A, seq_length=hp.seq_length)
-                    B = transform_sequence(B, seq_length=hp.seq_length)
-                    C = transform_sequence(C, seq_length=hp.seq_length)
-                    u_pred = PINN_model.rnn(A)[:, :, :-1]
+                    # A = transform_sequence(A, seq_length=hp.seq_length)
+                    # B = transform_sequence(B, seq_length=hp.seq_length)
+                    # C = transform_sequence(C, seq_length=hp.seq_length)
+                    u_pred = PINN_model.dnn(A)[:, :3]
                     
                     val_loss += torch.mean((u_pred-B)**2)
     
-                    f_pred = PINN_model.rnn(A)[:,:,3]
+                    # f_pred = PINN_model.rnn(A)[:,:,3]
+                    f_pred = PINN_model.dnn(X)[:,3]
 
                 val_loss /= len(val_loader) # Average Validation Loss
                 vals[i] = val_loss
@@ -76,7 +78,7 @@ def train(train_loader, val_loader, epochs, optimizer, PINN_model, N):
         # Print the loss after each epoch
             if i == epochs-1:
                 print(f"Epoch {i+1}/{epochs} - Train Loss: {losses[i]:.6f} Val Loss: {val_loss:.6f} f_train: {f_train[i]:.4f} f_test: {f_test[i]:.4f}")
-            elif (i+1) % (epochs//100) == 0:
+            elif (i+1) % (epochs//5) == 0:
                 print(f"Epoch {i+1}/{epochs} - Train Loss: {losses[i]:.6f} Val Loss: {val_loss:.6f} f_train: {f_train[i]:.4f} f_test: {f_test[i]:.4f}")
 
     return losses, vals, f_train, f_test, f_dist
